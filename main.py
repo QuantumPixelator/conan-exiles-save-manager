@@ -682,6 +682,7 @@ class MainWindow(QMainWindow):
 if __name__ == "__main__":
     # Start the app
     app = QApplication(sys.argv)
+    app.setWindowIcon(QIcon("icon.png"))
     window = MainWindow()
     window.show()
     sys.exit(app.exec())
