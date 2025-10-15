@@ -25,17 +25,24 @@ from PySide6.QtGui import QFont, QIcon
 
 
 class CopyWorker(QThread):
+    """Handles copying files and folders in a separate thread, so the app doesn't freeze."""
     progress = Signal(int)
     finished = Signal(bool)
     error = Signal(str)
 
     def __init__(self, source_base, dest_base, paths, parent=None):
+        """
+        source_base: Where to copy from
+        dest_base: Where to copy to
+        paths: List of files/folders to copy (relative paths)
+        """
         super().__init__(parent)
         self.source_base = source_base
         self.dest_base = dest_base
         self.paths = paths
 
     def run(self):
+        """Does the actual copying work and sends progress updates."""
         try:
             total = len(self.paths)
             for i, rel_path in enumerate(self.paths):
@@ -62,13 +69,18 @@ class CopyWorker(QThread):
 
 
 class DeleteWorker(QThread):
+    """Deletes a folder in a separate thread."""
     finished = Signal(bool)
 
     def __init__(self, path, parent=None):
+        """
+        path: Folder to delete
+        """
         super().__init__(parent)
         self.path = path
 
     def run(self):
+        """Deletes the folder and signals when done."""
         try:
             shutil.rmtree(self.path)
             self.finished.emit(True)
@@ -78,9 +90,11 @@ class DeleteWorker(QThread):
 
 
 class LaunchWorker(QThread):
+    """Launches Conan Exiles through Steam in a separate thread."""
     finished = Signal()
 
     def run(self):
+        """Starts the game and waits for it to close."""
         try:
             p = subprocess.Popen(["steam", "steam://rungameid/440900"])
             p.wait()
@@ -90,6 +104,7 @@ class LaunchWorker(QThread):
 
 
 def get_steam_path():
+    """Tries to find where Steam is installed on this computer."""
     sys_plat = platform.system().lower()
     if sys_plat == 'windows':
         try:
@@ -117,7 +132,11 @@ def get_steam_path():
 
 
 class MainWindow(QMainWindow):
+    """
+    The main window of the app. Handles all the UI and main logic for managing saves.
+    """
     def __init__(self):
+        """Sets up the main window and loads config, folders, and UI."""
         super().__init__()
         self.app = QApplication.instance()
         self.setWindowTitle("Conan Exiles Save Manager")
@@ -160,6 +179,7 @@ class MainWindow(QMainWindow):
         self.update_buttons()
 
     def find_game_path(self):
+        """Tries to find the Conan Exiles game folder automatically, or asks the user to pick it."""
         steam_path = get_steam_path()
         candidate = None
         if steam_path:
@@ -180,6 +200,7 @@ class MainWindow(QMainWindow):
         return None
 
     def load_config(self):
+        """Loads the list of files/folders to back up from config.json."""
         if self.config_path.exists():
             try:
                 with open(self.config_path, "r") as f:
@@ -191,6 +212,7 @@ class MainWindow(QMainWindow):
         return []
 
     def save_config(self):
+        """Saves the current backup selections to config.json and updates the summary label."""
         self.config_paths = self.get_checked_paths()
         try:
             with open(self.config_path, "w") as f:
@@ -216,6 +238,7 @@ class MainWindow(QMainWindow):
         self.update_buttons()
 
     def get_checked_paths(self):
+        """Returns a list of all checked (selected) files/folders in the tree."""
         paths = []
         def recurse(item):
             if item.checkState(0) == Qt.Checked:
@@ -228,6 +251,7 @@ class MainWindow(QMainWindow):
         return paths
 
     def populate_tree(self):
+        """Fills the tree view with files/folders from the game directory, showing which are selected."""
         self.tree.clear()
         config_set = set(self.config_paths)
 
@@ -252,6 +276,7 @@ class MainWindow(QMainWindow):
             self.tree.addTopLevelItem(QTreeWidgetItem(["Game folder not accessible"]))
 
     def init_ui(self):
+        """Sets up the main layout, tabs, status bar, and theme toggle."""
         central = QWidget()
         self.setCentralWidget(central)
         layout = QVBoxLayout(central)
@@ -277,6 +302,7 @@ class MainWindow(QMainWindow):
         self.status_bar.addPermanentWidget(mode_toggle)
 
     def init_saves_tab(self):
+        """Creates the Saves tab with all its buttons and the saves table."""
         tab = QWidget()
         layout = QVBoxLayout(tab)
 
@@ -341,6 +367,7 @@ class MainWindow(QMainWindow):
         return tab
 
     def init_config_tab(self):
+        """Creates the Configuration tab with the file/folder selection tree."""
         tab = QWidget()
         layout = QVBoxLayout(tab)
 
@@ -361,6 +388,7 @@ class MainWindow(QMainWindow):
 
     @Slot()
     def on_save_selected(self, row, col):
+        """Called when a save is clicked in the table. Updates the current save selection."""
         item = self.saves_table.item(row, 0)
         if item:
             self.current_save = item.text()
@@ -368,6 +396,7 @@ class MainWindow(QMainWindow):
             self.update_buttons()
 
     def update_buttons(self):
+        """Enables or disables buttons based on what is selected/configured."""
         has_config = bool(self.config_paths)
         has_current = bool(self.current_save)
         self.backup_btn.setEnabled(has_config)
@@ -377,6 +406,7 @@ class MainWindow(QMainWindow):
         self.delete_btn.setEnabled(has_current)
 
     def do_copy(self, source_base, dest_base, paths, title):
+        """Starts a file copy operation and shows a progress dialog."""
         self.progress_dialog = QProgressDialog(title, "Cancel", 0, 100, self)
         self.progress_dialog.setWindowModality(Qt.WindowModal)
         self.progress_dialog.setMinimumDuration(0)
@@ -393,6 +423,7 @@ class MainWindow(QMainWindow):
         self.refresh_btn.setEnabled(False)
 
     def on_copy_finished(self, success, title):
+        """Handles what happens after a copy operation finishes."""
         self.progress_dialog.close()
         self.refresh_btn.setEnabled(True)
         if success:
@@ -405,6 +436,7 @@ class MainWindow(QMainWindow):
 
     @Slot()
     def backup_save(self):
+        """Backs up the selected files/folders to a new save slot."""
         if not self.config_paths:
             QMessageBox.warning(self, "Warning", "Please configure selections first.")
             return
@@ -424,6 +456,7 @@ class MainWindow(QMainWindow):
 
     @Slot()
     def load_save(self):
+        """Loads the selected save into the game folder, overwriting current files."""
         if not self.current_save:
             QMessageBox.warning(self, "Warning", "Please select a save first.")
             return
@@ -435,6 +468,7 @@ class MainWindow(QMainWindow):
 
     @Slot()
     def launch_game(self):
+        """Launches the game and restores the save after the game closes."""
         if not self.current_save:
             QMessageBox.warning(self, "Warning", "Please select a save first.")
             return
@@ -443,11 +477,13 @@ class MainWindow(QMainWindow):
         self.launch_worker.start()
 
     def restore_after_launch(self, name):
+        """Restores the save after the game is closed."""
         backup_dir = self.saved_dir / name
         self.do_copy(self.game_saved, backup_dir, self.config_paths, f"Restoring {name} after game...")
 
     @Slot()
     def create_new_save(self):
+        """Creates a new save slot and backs up the current selection."""
         if not self.config_paths:
             QMessageBox.warning(self, "Warning", "Please configure selections first.")
             return
@@ -466,6 +502,7 @@ class MainWindow(QMainWindow):
             self.do_copy(self.game_saved, backup_dir, self.config_paths, f"Creating and backing up {name}...")
 
     def change_save_mode(self):
+        """Lets the user change the play mode (Solo/Online) for a save slot."""
         if not self.current_save:
             QMessageBox.warning(self, "Warning", "Please select a save first.")
             return
@@ -477,6 +514,7 @@ class MainWindow(QMainWindow):
 
     @Slot()
     def delete_save(self):
+        """Deletes the currently selected save slot."""
         if not self.current_save:
             return
         reply = QMessageBox.question(self, "Confirm", f"Delete save '{self.current_save}'?")
@@ -491,6 +529,7 @@ class MainWindow(QMainWindow):
         self.delete_btn.setEnabled(False)
 
     def on_delete_finished(self, success):
+        """Handles what happens after a save is deleted."""
         self.delete_btn.setEnabled(True)
         if success:
             logging.info(f"Deleted save: {self.current_save}")
@@ -505,6 +544,7 @@ class MainWindow(QMainWindow):
 
     @Slot()
     def refresh_saves(self):
+        """Refreshes the list of save slots shown in the table."""
         self.saves_table.setRowCount(0)
         if not self.saved_dir.exists():
             return
@@ -529,6 +569,7 @@ class MainWindow(QMainWindow):
                     logging.error(f"Error refreshing save {save_dir}: {e}")
 
     def get_save_mode(self, save_dir):
+        """Reads the play mode (Solo/Online) from a save's metadata.json."""
         meta_file = save_dir / "metadata.json"
         if meta_file.exists():
             try:
@@ -540,6 +581,7 @@ class MainWindow(QMainWindow):
         return "Unknown"
 
     def choose_save_mode(self):
+        """Shows a dialog to pick Solo or Online play mode."""
         msg = QMessageBox()
         msg.setWindowTitle("Select Play Mode")
         msg.setText("What type of save is this?")
@@ -554,6 +596,7 @@ class MainWindow(QMainWindow):
         return None
 
     def save_metadata(self, save_dir, mode):
+        """Writes the play mode info to metadata.json in the save slot."""
         meta_file = save_dir / "metadata.json"
         data = {"mode": mode}
         try:
@@ -563,6 +606,7 @@ class MainWindow(QMainWindow):
             logging.error(f"Failed to save metadata for {save_dir}: {e}")
 
     def show_about(self):
+        """Shows an About dialog with info about the app and Conan Exiles."""
         about_text = """
         <h2>Conan Exiles Save Manager</h2>
         <p>A tool for managing Conan Exiles game saves.</p>
@@ -583,12 +627,14 @@ class MainWindow(QMainWindow):
         QMessageBox.about(self, "About Conan Exiles", about_text)
 
     def toggle_mode(self):
+        """Switches between dark and light mode for the app."""
         self.dark_mode = not self.dark_mode
         qss = self.get_qss()
         self.app.setStyleSheet(qss)
         self.status_bar.showMessage("Theme toggled" if self.dark_mode else "Theme toggled", 2000)
 
     def get_qss(self):
+        """Returns the style sheet for the current theme (dark or light)."""
         if self.dark_mode:
             return """
             QMainWindow { background-color: #2B2B2B; color: #E0E0E0; }
@@ -634,6 +680,7 @@ class MainWindow(QMainWindow):
 
 
 if __name__ == "__main__":
+    # Start the app
     app = QApplication(sys.argv)
     window = MainWindow()
     window.show()

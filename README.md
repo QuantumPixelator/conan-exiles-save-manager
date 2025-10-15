@@ -55,7 +55,7 @@ A professional PySide6 desktop application for managing Conan Exiles game saves 
    - Click "💾 Backup Current Save"
    - Enter a name for your backup
    - Choose play mode (Solo or Online)
-   - The app copies your configured files to a timestamped folder
+   - The app copies your configured files to a folder in the /saved/ folder.
 
 4. **Load Saves**:
    - Select a save from the list
