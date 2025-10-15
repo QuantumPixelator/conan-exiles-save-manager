@@ -1,7 +1,7 @@
 """
 Conan Exiles Save Manager
 A PySide6 application to manage selective backups of Conan Exiles saves.
-Usage: python main.py
+Usage: python conan_save_manager.py
 Requires PySide6 installed.
 """
 
@@ -280,43 +280,53 @@ class MainWindow(QMainWindow):
         tab = QWidget()
         layout = QVBoxLayout(tab)
 
-        btn_layout = QHBoxLayout()
+        # Buttons - Row 1
+        row1_layout = QHBoxLayout()
         self.backup_btn = QPushButton("💾 Backup Current Save")
         self.backup_btn.setToolTip("Backup selected files to a new save")
         self.backup_btn.clicked.connect(self.backup_save)
-        btn_layout.addWidget(self.backup_btn)
+        row1_layout.addWidget(self.backup_btn)
 
         self.load_btn = QPushButton("📂 Load Selected Save")
         self.load_btn.setToolTip("Load the selected save into the game")
         self.load_btn.clicked.connect(self.load_save)
-        btn_layout.addWidget(self.load_btn)
+        row1_layout.addWidget(self.load_btn)
 
         self.launch_btn = QPushButton("🚀 Launch Game")
         self.launch_btn.setToolTip("Launch game and restore save on close")
         self.launch_btn.clicked.connect(self.launch_game)
-        btn_layout.addWidget(self.launch_btn)
+        row1_layout.addWidget(self.launch_btn)
 
         self.create_btn = QPushButton("➕ Create New Save Slot")
         self.create_btn.setToolTip("Create a new save slot and backup current")
         self.create_btn.clicked.connect(self.create_new_save)
-        btn_layout.addWidget(self.create_btn)
+        row1_layout.addWidget(self.create_btn)
 
+        layout.addLayout(row1_layout)
+
+        # Buttons - Row 2
+        row2_layout = QHBoxLayout()
         self.delete_btn = QPushButton("🗑️ Delete Selected Save")
         self.delete_btn.setToolTip("Delete the selected save folder")
         self.delete_btn.clicked.connect(self.delete_save)
-        btn_layout.addWidget(self.delete_btn)
-
-        self.refresh_btn = QPushButton("🔄 Refresh List")
-        self.refresh_btn.setToolTip("Refresh the saves list")
-        self.refresh_btn.clicked.connect(self.refresh_saves)
-        btn_layout.addWidget(self.refresh_btn)
+        row2_layout.addWidget(self.delete_btn)
 
         self.change_mode_btn = QPushButton("🔄 Change Mode")
         self.change_mode_btn.setToolTip("Change the play mode for the selected save")
         self.change_mode_btn.clicked.connect(self.change_save_mode)
-        btn_layout.addWidget(self.change_mode_btn)
+        row2_layout.addWidget(self.change_mode_btn)
 
-        layout.addLayout(btn_layout)
+        self.refresh_btn = QPushButton("🔄 Refresh List")
+        self.refresh_btn.setToolTip("Refresh the saves list")
+        self.refresh_btn.clicked.connect(self.refresh_saves)
+        row2_layout.addWidget(self.refresh_btn)
+
+        self.about_btn = QPushButton("ℹ️ About")
+        self.about_btn.setToolTip("Show information about Conan Exiles")
+        self.about_btn.clicked.connect(self.show_about)
+        row2_layout.addWidget(self.about_btn)
+
+        layout.addLayout(row2_layout)
 
         self.current_label = QLabel("Current Save: None")
         layout.addWidget(self.current_label)
@@ -551,6 +561,26 @@ class MainWindow(QMainWindow):
                 json.dump(data, f, indent=4)
         except Exception as e:
             logging.error(f"Failed to save metadata for {save_dir}: {e}")
+
+    def show_about(self):
+        about_text = """
+        <h2>Conan Exiles Save Manager</h2>
+        <p>A tool for managing Conan Exiles game saves.</p>
+        
+        <h3>About Conan Exiles</h3>
+        <p>Conan Exiles is an open-world survival game developed by Funcom, 
+        based on the works of Robert E. Howard. Players must survive in a 
+        harsh world, build bases, craft items, and battle enemies in a 
+        dark fantasy setting.</p>
+        
+        <p><b>Developer:</b> Funcom<br>
+        <b>Release Year:</b> 2018<br>
+        <b>Platforms:</b> PC, PlayStation, Xbox</p>
+        
+        <p>This save manager helps you backup, restore, and organize your 
+        game progress safely.</p>
+        """
+        QMessageBox.about(self, "About Conan Exiles", about_text)
 
     def toggle_mode(self):
         self.dark_mode = not self.dark_mode
