@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QTabWidget,
     QPushButton, QLabel, QTableWidget, QTableWidgetItem, QTreeWidget, QTreeWidgetItem,
     QProgressBar, QStatusBar, QProgressDialog, QMessageBox, QInputDialog, QFileDialog,
-    QToolButton
+    QToolButton, QHeaderView
 )
 from PySide6.QtCore import Qt, QThread, Signal, Slot
 from PySide6.QtGui import QFont, QIcon
@@ -360,7 +360,9 @@ class MainWindow(QMainWindow):
         self.saves_table = QTableWidget()
         self.saves_table.setColumnCount(4)
         self.saves_table.setHorizontalHeaderLabels(["Name", "Date", "Size", "Mode"])
-        self.saves_table.horizontalHeader().setStretchLastSection(True)
+        # Make all columns stretch equally
+        for i in range(4):
+            self.saves_table.horizontalHeader().setSectionResizeMode(i, QHeaderView.Stretch)
         self.saves_table.cellClicked.connect(self.on_save_selected)
         layout.addWidget(self.saves_table)
 
