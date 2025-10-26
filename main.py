@@ -438,23 +438,32 @@ class MainWindow(QMainWindow):
 
     @Slot()
     def backup_save(self):
-        """Backs up the selected files/folders to a new save slot."""
+        """Backs up the selected files/folders to a save slot."""
         if not self.config_paths:
             QMessageBox.warning(self, "Warning", "Please configure selections first.")
             return
-        name, ok = QInputDialog.getText(self, "Backup Name", "Enter save name:")
-        if ok and name.strip():
-            name = name.strip()
-            if (self.saved_dir / name).exists():
-                QMessageBox.warning(self, "Warning", "Save name already exists.")
+        if self.current_save:
+            # Backup to selected save
+            reply = QMessageBox.question(self, "Confirm Overwrite", f"Overwrite save '{self.current_save}' with current game data?")
+            if reply != QMessageBox.Yes:
                 return
-            mode = self.choose_save_mode()
-            if not mode:
-                return
-            backup_dir = self.saved_dir / name
-            backup_dir.mkdir()
-            self.save_metadata(backup_dir, mode)
-            self.do_copy(self.game_saved, backup_dir, self.config_paths, f"Backing up to {name}...")
+            backup_dir = self.saved_dir / self.current_save
+            self.do_copy(self.game_saved, backup_dir, self.config_paths, f"Backing up to {self.current_save}...")
+        else:
+            # Create new save
+            name, ok = QInputDialog.getText(self, "Backup Name", "Enter save name:")
+            if ok and name.strip():
+                name = name.strip()
+                if (self.saved_dir / name).exists():
+                    QMessageBox.warning(self, "Warning", "Save name already exists.")
+                    return
+                mode = self.choose_save_mode()
+                if not mode:
+                    return
+                backup_dir = self.saved_dir / name
+                backup_dir.mkdir()
+                self.save_metadata(backup_dir, mode)
+                self.do_copy(self.game_saved, backup_dir, self.config_paths, f"Backing up to {name}...")
 
     @Slot()
     def load_save(self):
@@ -485,7 +494,7 @@ class MainWindow(QMainWindow):
 
     @Slot()
     def create_new_save(self):
-        """Creates a new save slot and backs up the current selection."""
+        """Creates a new save slot and optionally backs up the current selection."""
         if not self.config_paths:
             QMessageBox.warning(self, "Warning", "Please configure selections first.")
             return
@@ -501,7 +510,12 @@ class MainWindow(QMainWindow):
             backup_dir = self.saved_dir / name
             backup_dir.mkdir()
             self.save_metadata(backup_dir, mode)
-            self.do_copy(self.game_saved, backup_dir, self.config_paths, f"Creating and backing up {name}...")
+            reply = QMessageBox.question(self, "Backup Now?", f"Save slot '{name}' created. Run backup immediately?")
+            if reply == QMessageBox.Yes:
+                self.do_copy(self.game_saved, backup_dir, self.config_paths, f"Creating and backing up {name}...")
+            else:
+                self.refresh_saves()
+                QMessageBox.information(self, "Success", f"Save slot '{name}' created.")
 
     def change_save_mode(self):
         """Lets the user change the play mode (Solo/Online) for a save slot."""
@@ -657,6 +671,11 @@ class MainWindow(QMainWindow):
             QMessageBox QLabel { color: #E0E0E0; }
             QMessageBox QPushButton { background-color: #404040; border: 1px solid #555; color: #E0E0E0; padding: 5px; }
             QMessageBox QPushButton:hover { background-color: #4DA6FF; color: white; }
+            QInputDialog { background-color: #2B2B2B; color: #E0E0E0; }
+            QInputDialog QLabel { color: #E0E0E0; }
+            QInputDialog QLineEdit { background-color: #404040; border: 1px solid #555; color: #E0E0E0; padding: 5px; }
+            QInputDialog QPushButton { background-color: #404040; border: 1px solid #555; color: #E0E0E0; padding: 5px; }
+            QInputDialog QPushButton:hover { background-color: #4DA6FF; color: white; }
             """
         else:
             return """
@@ -678,6 +697,11 @@ class MainWindow(QMainWindow):
             QMessageBox QLabel { color: #333; }
             QMessageBox QPushButton { background-color: #E0E0E0; border: 1px solid #CCC; color: #333; padding: 5px; }
             QMessageBox QPushButton:hover { background-color: #007ACC; color: white; }
+            QInputDialog { background-color: #F5F5F5; color: #333; }
+            QInputDialog QLabel { color: #333; }
+            QInputDialog QLineEdit { background-color: white; border: 1px solid #CCC; color: #333; padding: 5px; }
+            QInputDialog QPushButton { background-color: #E0E0E0; border: 1px solid #CCC; color: #333; padding: 5px; }
+            QInputDialog QPushButton:hover { background-color: #007ACC; color: white; }
             """
 
 
